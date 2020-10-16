@@ -20,7 +20,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: () => ({ em: orm.em }),
+    context: () => ({ em: orm.em.fork() }),
   });
 
   apolloServer.applyMiddleware({ app });
