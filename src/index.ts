@@ -11,7 +11,6 @@ import { UserResolver } from './resolvers/user';
 import redis from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
-import { MyContext } from './types';
 
 const main = async () => {
   const orm = await MikroORM.init(MikroOrmConfigurations);
@@ -43,7 +42,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ em: orm.em.fork(), req, res }),
+    context: ({ req, res }) => ({ em: orm.em.fork(), req, res }),
   });
 
   apolloServer.applyMiddleware({ app });
