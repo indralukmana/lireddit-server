@@ -11,6 +11,7 @@ import { UserResolver } from './resolvers/user';
 import redis from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
+import cors from 'cors';
 
 const main = async () => {
   const orm = await MikroORM.init(MikroOrmConfigurations);
@@ -20,6 +21,13 @@ const main = async () => {
 
   let RedisStore = connectRedis(session);
   let redisClient = redis.createClient();
+
+  app.use(
+    cors({
+      origin: 'http://localhost:3000',
+      credentials: true,
+    })
+  );
 
   app.use(
     session({
@@ -45,7 +53,7 @@ const main = async () => {
     context: ({ req, res }) => ({ em: orm.em.fork(), req, res }),
   });
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app, cors: false });
 
   app.listen(4000, () => {
     console.log('Server started at port 4000');
