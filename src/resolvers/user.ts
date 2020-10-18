@@ -7,6 +7,7 @@ import {
   InputType,
   Mutation,
   ObjectType,
+  Query,
   Resolver,
 } from 'type-graphql';
 import argon2 from 'argon2';
@@ -43,7 +44,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async register(
     @Arg('options') options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     if (options.username.length < 3) {
       return {
@@ -72,7 +73,6 @@ export class UserResolver {
       username: options.username,
       password: hashedPassword,
     });
-    console.log({ user });
 
     try {
       await em.persistAndFlush(user);
@@ -84,6 +84,9 @@ export class UserResolver {
       }
       console.log(error);
     }
+
+    req.session.userId = user.id;
+
     return { user };
   }
 
