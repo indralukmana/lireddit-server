@@ -3,7 +3,7 @@ import { ApolloServer } from 'apollo-server-express';
 import express from 'express';
 import { buildSchema } from 'type-graphql';
 
-import { __prod__ } from './constants';
+import { SESSION_COOKIE_NAME, __prod__ } from './constants';
 import MikroOrmConfigurations from './mikro-orm.config';
 import { HelloResolver } from './resolvers/hello';
 import { PostResolver } from './resolvers/post';
@@ -31,7 +31,7 @@ const main = async () => {
 
   app.use(
     session({
-      name: 'qid',
+      name: SESSION_COOKIE_NAME,
       store: new RedisStore({ client: redisClient, disableTouch: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
