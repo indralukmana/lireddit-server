@@ -4,7 +4,6 @@ import {
   Arg,
   Ctx,
   Field,
-  InputType,
   Mutation,
   ObjectType,
   Query,
@@ -12,15 +11,8 @@ import {
 } from 'type-graphql';
 import argon2 from 'argon2';
 import { SESSION_COOKIE_NAME } from '../constants';
-
-@InputType()
-class UsernamePasswordInput {
-  @Field()
-  username: string;
-
-  @Field()
-  password: string;
-}
+import { validateUserRegistration } from '../utils/validateUser';
+import { UsernamePasswordInput } from './UsernamePasswordInput';
 
 @ObjectType()
 class FieldError {
@@ -47,31 +39,16 @@ export class UserResolver {
     @Arg('options') options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    if (options.username.length < 3) {
-      return {
-        errors: [
-          {
-            field: 'username',
-            message: 'username cannot be less than 3 chars',
-          },
-        ],
-      };
-    }
+    const errors = validateUserRegistration(options);
 
-    if (options.password.length < 3) {
-      return {
-        errors: [
-          {
-            field: 'password',
-            message: 'password cannot be less than 3 chars',
-          },
-        ],
-      };
+    if (errors) {
+      return { errors };
     }
 
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
       username: options.username,
+      email: options.email,
       password: hashedPassword,
     });
 
@@ -103,23 +80,29 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg('options') options: UsernamePasswordInput,
+    @Arg('usernameOrEmail') usernameOrEmail: string,
+    @Arg('password') password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: options.username });
+    const user = await em.findOne(
+      User,
+      usernameOrEmail.includes('@')
+        ? { email: usernameOrEmail }
+        : { username: usernameOrEmail }
+    );
 
     if (!user) {
       return {
         errors: [
           {
-            field: 'username',
-            message: `no user with username ${options.username}`,
+            field: 'usernameOrEmail',
+            message: `no user with ${usernameOrEmail} credential`,
           },
         ],
       };
     }
 
-    const validPassword = await argon2.verify(user.password, options.password);
+    const validPassword = await argon2.verify(user.password, password);
 
     if (!validPassword) {
       return {
