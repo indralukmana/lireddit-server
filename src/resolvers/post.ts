@@ -8,6 +8,8 @@ import {
   Field,
   Ctx,
   UseMiddleware,
+  FieldResolver,
+  Root,
 } from 'type-graphql';
 import { getRepository } from 'typeorm';
 import { Post } from '../entities/Post';
@@ -23,8 +25,15 @@ class PostInput {
   text: string;
 }
 
-@Resolver()
+@Resolver(Post)
 export class PostResolver {
+  @FieldResolver(() => String)
+  textSnippet(@Root() post: Post) {
+    const dots = post.text.length > 50 ? '...' : '';
+    const shortenedText = post.text.substring(0, 50);
+    return shortenedText + dots;
+  }
+
   @Query(() => [Post])
   posts(
     @Arg('limit', () => Int, { nullable: true, defaultValue: 10 })
