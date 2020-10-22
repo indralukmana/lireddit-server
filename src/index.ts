@@ -14,9 +14,10 @@ import connectRedis from 'connect-redis';
 import cors from 'cors';
 import { User } from './entities/User';
 import { Post } from './entities/Post';
+import path from 'path';
 
 const main = async () => {
-  await createConnection({
+  const conn = await createConnection({
     type: 'postgres',
     database: 'lireddit-typeorm',
     username: 'postgres',
@@ -24,7 +25,10 @@ const main = async () => {
     synchronize: true,
     logging: true,
     entities: [User, Post],
+    migrations: [path.join(__dirname, './migrations/*')],
   });
+
+  await conn.runMigrations();
 
   const app = express();
 
