@@ -12,7 +12,7 @@ import {
   Root,
   ObjectType,
 } from 'type-graphql';
-import { getRepository } from 'typeorm';
+import { getConnection, getRepository } from 'typeorm';
 import { Post } from '../entities/Post';
 import { isAuth } from '../middlewares/isAuth';
 import { MyContext } from '../types';
@@ -53,18 +53,30 @@ export class PostResolver {
     const cappedLimit = Math.min(limit, 50);
     const cappedLimitPlusOne = cappedLimit + 1;
 
-    const postsQueryBuilder = getRepository(Post)
-      .createQueryBuilder('posts')
-      .orderBy('"createdAt"', 'DESC')
-      .take(cappedLimitPlusOne);
+    const replacements = [cappedLimitPlusOne] as any[];
 
     if (cursor) {
-      postsQueryBuilder.where('"createdAt" < :cursor', {
-        cursor: new Date(cursor),
-      });
+      replacements.push(new Date(cursor));
     }
 
-    const posts = await postsQueryBuilder.getMany();
+    const posts = await getConnection().query(
+      `
+      select p.*,
+      json_build_object(
+        'id', u.id,
+        'username', u.username,
+        'email', u.email,
+        'createdAt', u."createdAt",
+        'updatedAt', u."updatedAt"
+      ) creator
+      from public.post p
+      inner join public.user u on u.id = p."creatorId"
+      ${cursor ? 'where p."createdAt" < $2' : ''}
+      order by p."createdAt" DESC
+      limit $1
+    `,
+      replacements
+    );
 
     return {
       posts: posts.slice(0, cappedLimit),
