@@ -10,6 +10,7 @@ import {
   UseMiddleware,
   FieldResolver,
   Root,
+  ObjectType,
 } from 'type-graphql';
 import { getRepository } from 'typeorm';
 import { Post } from '../entities/Post';
@@ -25,6 +26,15 @@ class PostInput {
   text: string;
 }
 
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[];
+
+  @Field()
+  hasMore: boolean;
+}
+
 @Resolver(Post)
 export class PostResolver {
   @FieldResolver(() => String)
@@ -34,17 +44,19 @@ export class PostResolver {
     return shortenedText + dots;
   }
 
-  @Query(() => [Post])
-  posts(
+  @Query(() => PaginatedPosts)
+  async posts(
     @Arg('limit', () => Int, { nullable: true, defaultValue: 10 })
     limit: number,
     @Arg('cursor', { nullable: true }) cursor: string
-  ): Promise<Post[]> {
+  ): Promise<PaginatedPosts> {
     const cappedLimit = Math.min(limit, 50);
+    const cappedLimitPlusOne = cappedLimit + 1;
+
     const postsQueryBuilder = getRepository(Post)
       .createQueryBuilder('posts')
       .orderBy('"createdAt"', 'DESC')
-      .take(cappedLimit);
+      .take(cappedLimitPlusOne);
 
     if (cursor) {
       postsQueryBuilder.where('"createdAt" < :cursor', {
@@ -52,7 +64,12 @@ export class PostResolver {
       });
     }
 
-    return postsQueryBuilder.getMany();
+    const posts = await postsQueryBuilder.getMany();
+
+    return {
+      posts: posts.slice(0, cappedLimit),
+      hasMore: posts.length === cappedLimitPlusOne,
+    };
   }
 
   @Query(() => Post, { nullable: true })
