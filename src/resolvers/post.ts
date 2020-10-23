@@ -12,7 +12,7 @@ import {
   Root,
   ObjectType,
 } from 'type-graphql';
-import { getConnection, getRepository } from 'typeorm';
+import { getConnection } from 'typeorm';
 import { Post } from '../entities/Post';
 import { isAuth } from '../middlewares/isAuth';
 import { MyContext } from '../types';
