@@ -17,6 +17,7 @@ import { validateUserRegistration } from '../utils/validateUser';
 import { UsernamePasswordInput } from './UsernamePasswordInput';
 import { v4 } from 'uuid';
 import { sendEmail } from '../utils/sendEmail';
+import { Post } from '../entities/Post';
 
 @ObjectType()
 class FieldError {
@@ -34,6 +35,15 @@ class UserResponse {
 
   @Field(() => User, { nullable: true })
   user?: User;
+}
+
+@ObjectType()
+class MeResponse {
+  @Field()
+  user: User;
+
+  @Field(() => [Post])
+  posts: Post[];
 }
 
 @Resolver(User)
@@ -186,13 +196,23 @@ export class UserResolver {
     }
   }
 
-  @Query(() => User, { nullable: true })
-  me(@Ctx() { req }: MyContext) {
+  @Query(() => MeResponse, { nullable: true })
+  async me(@Ctx() { req }: MyContext): Promise<MeResponse | null> {
     if (!req.session.userId) {
       return null;
     }
 
-    return User.findOne(Number(req.session.userId));
+    const posts = await Post.find({
+      where: { creatorId: req.session.userId },
+      relations: ['creator'],
+    });
+    const user = await User.findOne(Number(req.session.userId));
+
+    if (!user) {
+      return null;
+    }
+
+    return { posts, user };
   }
 
   @Mutation(() => UserResponse)
