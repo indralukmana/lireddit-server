@@ -12,8 +12,9 @@ import {
   Root,
   ObjectType,
 } from 'type-graphql';
-import { getConnection } from 'typeorm';
+import { getConnection, getRepository } from 'typeorm';
 import { Post } from '../entities/Post';
+import { User } from '../entities/User';
 import { isAuth } from '../middlewares/isAuth';
 import { MyContext } from '../types';
 
@@ -42,6 +43,44 @@ export class PostResolver {
     const dots = post.text.length > 50 ? '...' : '';
     const shortenedText = post.text.substring(0, 50);
     return shortenedText + dots;
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg('postId') postId: number,
+    // @Arg('value') value: number,
+    @Ctx() { req }: MyContext
+  ) {
+    const post = await getRepository(Post).findOne({
+      relations: ['voters'],
+      where: { id: postId },
+    });
+
+    if (!post) {
+      return false;
+    }
+
+    const user = await User.findOne(req.session.userId);
+
+    if (!user) {
+      return false;
+    }
+
+    const voters = post.voters;
+    const alreadyVoted = voters.find((voter) => voter.id === user.id);
+
+    if (!alreadyVoted) {
+      post.voters = [user];
+      post.points += 1;
+    } else {
+      post.voters = post.voters.filter((voter) => voter.id !== user.id);
+      post.points -= 1;
+    }
+
+    await post.save();
+
+    return true;
   }
 
   @Query(() => PaginatedPosts)

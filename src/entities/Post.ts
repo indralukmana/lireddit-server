@@ -4,6 +4,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -24,6 +26,10 @@ export class Post extends BaseEntity {
   @Field()
   @Column()
   text!: string;
+
+  @ManyToMany(() => User, (users) => users.posts)
+  @JoinTable()
+  voters: User[];
 
   @Field()
   @Column({ type: 'int', default: 0 })

@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -28,6 +29,7 @@ export class User extends BaseEntity {
   @Column()
   password!: string;
 
+  @ManyToMany(() => Post, (post) => post.voters)
   @ManyToOne(() => Post, (post) => post.creator)
   posts: Post[];
 
