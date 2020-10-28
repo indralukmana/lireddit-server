@@ -45,8 +45,12 @@ export class PostResolver {
     return shortenedText + dots;
   }
 
-  @FieldResolver(() => Boolean)
+  @FieldResolver(() => Boolean, { nullable: true })
   userVoted(@Root() post: Post, @Ctx() { req }: MyContext) {
+    if (!req.session.userId) {
+      return null;
+    }
+
     const userVoted = post.voters.find(
       (voter) => voter.id === req.session.userId
     );
