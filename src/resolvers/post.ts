@@ -12,7 +12,7 @@ import {
   Root,
   ObjectType,
 } from 'type-graphql';
-import { getConnection, getRepository } from 'typeorm';
+import { getRepository } from 'typeorm';
 import { Post } from '../entities/Post';
 import { User } from '../entities/User';
 import { isAuth } from '../middlewares/isAuth';
@@ -45,13 +45,17 @@ export class PostResolver {
     return shortenedText + dots;
   }
 
+  @FieldResolver(() => Boolean)
+  userVoted(@Root() post: Post, @Ctx() { req }: MyContext) {
+    const userVoted = post.voters.find(
+      (voter) => voter.id === req.session.userId
+    );
+    return !!userVoted;
+  }
+
   @Mutation(() => Boolean)
   @UseMiddleware(isAuth)
-  async vote(
-    @Arg('postId') postId: number,
-    // @Arg('value') value: number,
-    @Ctx() { req }: MyContext
-  ) {
+  async vote(@Arg('postId') postId: number, @Ctx() { req }: MyContext) {
     const post = await getRepository(Post).findOne({
       relations: ['voters'],
       where: { id: postId },
@@ -98,28 +102,16 @@ export class PostResolver {
       replacements.push(new Date(cursor));
     }
 
-    const posts = await getConnection().query(
-      `
-      select p.*,
-      json_build_object(
-        'id', u.id,
-        'username', u.username,
-        'email', u.email,
-        'createdAt', u."createdAt",
-        'updatedAt', u."updatedAt"
-      ) creator
-      from public.post p
-      inner join public.user u on u.id = p."creatorId"
-      ${cursor ? 'where p."createdAt" < $2' : ''}
-      order by p."createdAt" DESC
-      limit $1
-    `,
-      replacements
-    );
+    const p = await getRepository(Post)
+      .createQueryBuilder('posts')
+      .leftJoinAndSelect('posts.voters', 'voters')
+      .leftJoinAndSelect('posts.creator', 'creator')
+      .take(cappedLimitPlusOne)
+      .getMany();
 
     return {
-      posts: posts.slice(0, cappedLimit),
-      hasMore: posts.length === cappedLimitPlusOne,
+      posts: p.slice(0, cappedLimit),
+      hasMore: p.length === cappedLimitPlusOne,
     };
   }
 

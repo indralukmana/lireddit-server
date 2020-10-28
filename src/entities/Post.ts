@@ -6,7 +6,7 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
-  OneToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -36,7 +36,7 @@ export class Post extends BaseEntity {
   points!: number;
 
   @Field()
-  @OneToMany(() => User, (user) => user.posts)
+  @ManyToOne(() => User, (user) => user.posts)
   creator!: User;
 
   @Field()

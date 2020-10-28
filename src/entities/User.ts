@@ -5,7 +5,7 @@ import {
   CreateDateColumn,
   Entity,
   ManyToMany,
-  ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -30,7 +30,7 @@ export class User extends BaseEntity {
   password!: string;
 
   @ManyToMany(() => Post, (post) => post.voters)
-  @ManyToOne(() => Post, (post) => post.creator)
+  @OneToMany(() => Post, (post) => post.creator)
   posts: Post[];
 
   @Field()
